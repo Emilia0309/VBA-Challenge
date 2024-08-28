@@ -1,0 +1,146 @@
+Sub test_loop()
+
+
+    Dim ws As Worksheet
+    Dim ticker As String
+    Dim openPrice As Double
+    Dim closePrice As Double
+    Dim quarterlyChange As Double
+    Dim percentageChange As Double
+    Dim totalVolume As Double
+    Dim lastRow As Long
+    Dim summaryRow As Long
+    Dim i As Long
+
+    Dim greatestIncrease As Double
+    Dim greatestDecrease As Double
+    Dim greatestVolume As Double
+    Dim greatestIncreaseTicker As String
+    Dim greatestDecreaseTicker As String
+    Dim greatestVolumeTicker As String
+
+    ' Loop through each worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        ws.Activate
+        lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+        summaryRow = 2 ' Start summary on row 2
+
+        ' Initialize variables for greatest values
+        greatestIncrease = -999999
+        greatestDecrease = 999999
+        greatestVolume = 0
+
+        ' Initialize variables
+        ticker = ws.Cells(2, 1).Value
+        openPrice = ws.Cells(2, 3).Value
+        totalVolume = 0
+
+        ' Loop through all rows in the worksheet
+        For i = 2 To lastRow
+            ' Check if the ticker symbol changes
+            If ws.Cells(i, 1).Value <> ticker Then
+                ' Calculate close price, quarterly change, and percentage change
+                closePrice = ws.Cells(i - 1, 6).Value
+                quarterlyChange = closePrice - openPrice
+                percentageChange = ((quarterlyChange / openPrice) / 100) * 100
+
+                ' Output the results
+                ws.Cells(summaryRow, 9).Value = ticker
+                ws.Cells(summaryRow, 10).Value = quarterlyChange
+                ws.Cells(summaryRow, 11).Value = percentageChange
+                ws.Cells(summaryRow, 12).Value = totalVolume
+
+                ' Check for greatest values
+                If percentageChange > greatestIncrease Then
+                    greatestIncrease = percentageChange
+                    greatestIncreaseTicker = ticker
+                End If
+
+                If percentageChange < greatestDecrease Then
+                    greatestDecrease = percentageChange
+                    greatestDecreaseTicker = ticker
+                End If
+
+                If totalVolume > greatestVolume Then
+                    greatestVolume = totalVolume
+                    greatestVolumeTicker = ticker
+                End If
+
+                ' Move to the next summary row
+                summaryRow = summaryRow + 1
+
+                ' Reset variables for the new ticker
+                ticker = ws.Cells(i, 1).Value
+                openPrice = ws.Cells(i, 3).Value
+                totalVolume = 0
+            End If
+
+            ' Accumulate the total volume
+            totalVolume = totalVolume + ws.Cells(i, 7).Value
+        Next i
+
+        ' Handle the last ticker
+        closePrice = ws.Cells(lastRow, 6).Value
+        quarterlyChange = closePrice - openPrice
+        percentageChange = ((quarterlyChange / openPrice) / 100) * 100
+
+        ws.Cells(summaryRow, 9).Value = ticker
+        ws.Cells(summaryRow, 10).Value = quarterlyChange
+        ws.Cells(summaryRow, 11).Value = percentageChange
+        ws.Cells(summaryRow, 12).Value = totalVolume
+
+        ' Check for greatest values for the last ticker
+        If percentageChange > greatestIncrease Then
+            greatestIncrease = percentageChange
+            greatestIncreaseTicker = ticker
+        End If
+
+        If percentageChange < greatestDecrease Then
+            greatestDecrease = percentageChange
+            greatestDecreaseTicker = ticker
+        End If
+
+        If totalVolume > greatestVolume Then
+            greatestVolume = totalVolume
+            greatestVolumeTicker = ticker
+        End If
+
+        ' Output the greatest values for the current quarter
+        ws.Cells(2, 15).Value = "Greatest % Increase"
+        ws.Cells(2, 16).Value = greatestIncreaseTicker
+        ws.Cells(2, 17).Value = greatestIncrease
+
+        ws.Cells(3, 15).Value = "Greatest % Decrease"
+        ws.Cells(3, 16).Value = greatestDecreaseTicker
+        ws.Cells(3, 17).Value = greatestDecrease
+
+        ws.Cells(4, 15).Value = "Greatest Total Volume"
+        ws.Cells(4, 16).Value = greatestVolumeTicker
+        ws.Cells(4, 17).Value = greatestVolume
+
+        ' Apply conditional formatting to the quarterly change column
+        With ws.Range(ws.Cells(2, 10), ws.Cells(summaryRow, 10))
+            .FormatConditions.Delete
+            .FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="0"
+            .FormatConditions(1).Interior.Color = RGB(0, 255, 0) ' Green for positive change
+            .FormatConditions.Add Type:=xlCellValue, Operator:=xlLess, Formula1:="0"
+            .FormatConditions(2).Interior.Color = RGB(255, 0, 0) ' Red for negative change
+         End With
+         
+        ' Apply conditional formatting to the percentage change column
+        With ws.Range(ws.Cells(2, 11), ws.Cells(summaryRow, 11))
+            .FormatConditions.Delete
+            .FormatConditions.Add Type:=xlCellValue, Operator:=xlGreater, Formula1:="0"
+            .FormatConditions(1).Interior.Color = RGB(0, 255, 0) ' Green for positive change
+            .FormatConditions.Add Type:=xlCellValue, Operator:=xlLess, Formula1:="0"
+            .FormatConditions(2).Interior.Color = RGB(255, 0, 0) ' Red for negative change
+        End With
+
+        ' Format Percent Change and Value columns as percentages
+        ws.Range(ws.Cells(2, 11), ws.Cells(summaryRow, 11)).NumberFormat = "0.00%"
+        ws.Range(ws.Cells(2, 17), ws.Cells(4, 17)).NumberFormat = "0.00%"
+         
+     Next ws
+     
+End Sub
+
